@@ -76,49 +76,21 @@ class MyHandler(BaseHTTPRequestHandler):
         try:
             if re.match('.*channels-([0-9])\..*|.*channels\..*\?portal=([0-9])', self.path):
 
-            	host = self.headers.get('Host');
-
-
-            	searchObj = re.search('.*channels-([0-9])\..*|.*channels\..*\?portal=([0-9])', self.path);
-            	if searchObj.group(1) != None:
-            		numportal = searchObj.group(1);
-            	elif searchObj.group(2) != None:
-            		numportal = searchObj.group(2);
-            	else:
-            		self.send_error(400,'Bad Request');
-            		return;
-            	
-
-            	portal = portals[numportal];
-            	
             	EXTM3U = "#EXTM3U\n";
             	
             	try:
+                    data = '{ "name": "channel 1" , "number": "1", "name": "channel 2", "number": "2", "name": "channel 3", "number": "3" }';
+                    data = json.loads(data.encode('utf-8'));
 
-					data = load_channels.getAllChannels(portal['mac'], portal['url'], portal['serial'], addondir);
-					data = load_channels.orderChannels(data['channels'].values());
+                    for i in data:
+                        name 		= i["name"];
+                        number 		= i["number"];
+                        EXTM3U += '#EXTINF:-1, tvg-id="' + number + '" tvg-name="' + name + '", ' + name + '\n';
+                        EXTM3U += 'http://localhost/live.m3u?\n\n';
 
-					for i in data:
-						name 		= i["name"];
-						cmd 		= i["cmd"];
-						tmp 		= i["tmp"];
-						number 		= i["number"];
-						genre_title = i["genre_title"];
-						genre_id 	= i["genre_id"];
-						logo 		= i["logo"];
-
-						if logo != '':
-							logo = portal['url'] + '/stalker_portal/misc/logos/320/' + logo;
-				
-					
-						parameters = urllib.urlencode( { 'channel' : cmd, 'tmp' : tmp, 'portal' : numportal } );
-					
-						EXTM3U += '#EXTINF:-1, tvg-id="' + number + '" tvg-name="' + name + '" tvg-logo="' + logo + '" group-title="' + genre_title + '", ' + name + '\n';
-						EXTM3U += 'http://' + host + '/live.m3u?'  + parameters +'\n\n';
-					
             	except Exception as e:
-						EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" tvg-logo="" group-title="Error", ' + portal['name'] + ' ' + str(e) + '\n';
-						EXTM3U += 'http://\n\n';
+                        EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" tvg-logo="" group-title="Error", ' + str(e) + '\n';
+                        EXTM3U += 'http://\n\n';
         	
         	
                 self.send_response(200)
