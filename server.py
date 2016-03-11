@@ -77,20 +77,23 @@ class MyHandler(BaseHTTPRequestHandler):
             if re.match('.*channels-([0-9])\..*|.*channels\..*\?portal=([0-9])', self.path):
 
             	EXTM3U = "#EXTM3U\n";
-            	
+            	f = open("/Users/paulhopgood/Documents/log.txt", "a");
+                
             	try:
-                    data = '{ "name": "channel 1" , "number": "1", "name": "channel 2", "number": "2", "name": "channel 3", "number": "3" }';
-                    data = json.loads(data.encode('utf-8'));
-
-                    for i in data:
-                        name 		= i["name"];
-                        number 		= i["number"];
-                        EXTM3U += '#EXTINF:-1, tvg-id="' + number + '" tvg-name="' + name + '", ' + name + '\n';
+                    data = '[{ "name": "channel 1" , "number": "1" }, { "name": "channel 2", "number": "2" }, { "name": "channel 3", "number": "3" }]'
+                    json_obj = json.loads(data)
+                    
+                    for i in json_obj:
+                        EXTM3U += '#EXTINF:-1, tvg-id="' + i["number"] + '" tvg-name="' + i["name"] + '", ' + i["name"] + '\n';
                         EXTM3U += 'http://localhost/live.m3u?\n\n';
-
+                        f.write(str(EXTM3U));
+                        
             	except Exception as e:
                         EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" tvg-logo="" group-title="Error", ' + str(e) + '\n';
                         EXTM3U += 'http://\n\n';
+                        f.write(str(EXTM3U + '\n'));
+                        
+                f.close();
         	
         	
                 self.send_response(200)
