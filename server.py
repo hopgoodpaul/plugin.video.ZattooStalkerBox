@@ -181,7 +181,12 @@ class ZapiSession:
 
 
 class MyHandler(BaseHTTPRequestHandler):
-
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-type", "application/x-mpegURL")
+        self.end_headers()
+    
+    
     def do_GET(self):
         global portals, server;
 
@@ -217,8 +222,12 @@ class MyHandler(BaseHTTPRequestHandler):
                             title = channeling['title']
                             cid = channeling['cid']
                             parameters = urllib.urlencode( { 'channel' : cid, 'portal': numportal });
+                            
+                            params = {'cid': cid, 'stream_type': 'hls'}
+                            resultData = zapi.exec_zapiCall('/zapi/watch', params)
                             EXTM3U += '#EXTINF:-1, tvg-id="' + str(countering) + '" tvg-name="' + title + '", '+ title +' \n';
-                            EXTM3U += 'http://' + host +'/live.m3u?' + parameters + '\n\n';
+                            EXTM3U += resultData['stream']['watch_urls'][0]['url']
+                            #EXTM3U += 'http://' + host +'/live.m3u?' + parameters + '\n\n';
                             countering += 1
                         
                 except Exception as e:
@@ -248,6 +257,7 @@ class MyHandler(BaseHTTPRequestHandler):
                 zapi.init_session('paulhopgood@gmail.com', 'v1p3rdns')
                 params = {'cid': cmd, 'stream_type': 'hls'}
                 resultData = zapi.exec_zapiCall('/zapi/watch', params)
+                url = ""
                 if resultData is not None:
                     url = resultData['stream']['watch_urls'][0]['url']
                 self.send_response(301)
