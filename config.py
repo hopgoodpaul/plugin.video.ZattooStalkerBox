@@ -18,6 +18,7 @@ addonname   = addon.getAddonInfo('name')
 addondir    = xbmc.translatePath( addon.getAddonInfo('profile') ) 
 
 
+
 def portalConfig(number):
 
 	portal = {};

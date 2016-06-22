@@ -10,6 +10,8 @@ import math
 import urllib2
 import hashlib
 from xml.dom import minidom
+import server
+import xbmc
 
 key = None;
 mac = ':'.join(re.findall('..', '%012x' % uuid.getnode()));
@@ -129,8 +131,6 @@ def retrieveData(url, values ):
 
 	
 	data = urllib.urlencode(values);
-	
-
 	req = urllib2.Request(url + load, data, headers);
 	resp = urllib2.urlopen(req).read().decode("utf-8");
 	
@@ -521,67 +521,34 @@ def getEPG(portal_mac, url, serial, path):
 
 
 
-def retriveUrl(portal_mac, url, serial, channel, tmp):
+def retriveUrl( url, channel):
 	
-	setMac(portal_mac);
-	setSerialNumber(serial);
+	#setMac(portal_mac);
+	#setSerialNumber(serial);
 		
-	if 'matrix' in channel:
-		return retrieve_matrixUrl(url, channel);
+	#if 'matrix' in channel:
+	#	return retrieve_matrixUrl(url, channel);
 		
-	else:
-		return retrive_defaultUrl(url, channel, tmp);
+	#else:
+    return retrive_defaultUrl(url, channel);
 		
 	
 		
-def retrive_defaultUrl(url, channel, tmp):
-
-	if tmp == '0':
-		s = channel.split(' ');
-		url = s[0];
-		if len(s)>1:
-			url = s[1];
-		return url;
-
-
-	handshake(url);
-	
-	cmd = channel;
-	
-
-	info = retrieveData(url, values = {
-		'type' : 'itv', 
-		'action' : 'create_link', 
-		'cmd' : channel,
-		'forced_storage' : 'undefined',
-		'disable_ad' : '0',
-		'JsHttpRequest' : '1-xml'});
-	cmd = info['js']['cmd'];
-		
-	s = cmd.split(' ');
-			
-	url = s[0];
-	
-	if len(s)>1:
-		url = s[1];
-
-
-	# RETRIEVE THE 1 EXTM3U
-	request = urllib2.Request(url)
-	request.get_method = lambda : 'HEAD'
-	response  = urllib2.urlopen(request);
-	data = response.read().decode("utf-8");
-	
-	
-	data = data.splitlines();
-	data = data[len(data) - 1];
-
-	# RETRIEVE THE 2 EXTM3U
-	url = response.geturl().split('?')[0];
-	url_base = url[: -(len(url) - url.rfind('/'))]
-	return url_base + '/' + data;
-
-	
+def retrive_defaultUrl(url, channel):
+    	
+    cmd = channel;
+    s = cmd.split(' ');
+    url = s[0];
+    
+    if len(s)>1:
+        url = s[1];
+    zapi = server.ZapiSession('/Users/paulhopgood/Documents/')
+    zapi.init_session('paulhopgood@gmail.com', 'v1p3rdns')
+    params = {'cid': url, 'stream_type': 'hls'}
+    resultData = zapi.exec_zapiCall('/zapi/watch', params)
+    if resultData is not None:
+        url = resultData['stream']['watch_urls'][0]['url']
+        xbmc.log(url)
 	return url;
 
 
