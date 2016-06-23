@@ -218,9 +218,10 @@ class MyHandler(BaseHTTPRequestHandler):
                 EXTM3U = "#EXTM3U\n";
                 counting = 0
                 try:
-                    date = None
+                    date = datetime.datetime.now()
                     if date is None: date = datetime.date.today()
                     else: date = date.date()
+                    
                     fromTime = int(time.mktime(date.timetuple()))
                     toTime = fromTime + 86400
                     zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
