@@ -218,7 +218,8 @@ class MyHandler(BaseHTTPRequestHandler):
                 EXTM3U = "#EXTM3U\n";
                 counting = 0
                 try:
-                    if date in None: date = datetime.date.today()
+                    date = None
+                    if date is None: date = datetime.date.today()
                     else: date = date.date()
                     fromTime = int(time.mktime(date.timetuple()))
                     toTime = fromTime + 86400
