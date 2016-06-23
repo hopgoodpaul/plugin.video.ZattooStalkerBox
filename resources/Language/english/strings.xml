@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 
 <strings>
-    <string id="33001">Account settings</string>
-    <string id="30001">Username</string>
+    <string id="33001">Zattoo Account settings</string>
+    <string id="30001">Username/Email</string>
     <string id="30002">Password</string>
-    
+    <string id="30003">Enable broken channels hack (not all channels)</string>
     <string id="33004">M3U Server</string>
     <string id="30015">Enable</string>
     <string id="30016">Start</string>

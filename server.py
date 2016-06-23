@@ -19,6 +19,7 @@ import re
 import threading
 import base64
 import traceback
+import datetime
 
 addon       = xbmcaddon.Addon()
 addonname   = addon.getAddonInfo('name')
@@ -52,6 +53,22 @@ class AsyncCall(object):
         self.Result = self.Callable(*args, **kwargs)
         if self.Callback:
             self.Callback(self.Result)
+
+def watchURL(cmd):
+    zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+    zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
+    params = {'cid': cmd, 'stream_type': 'hls'}
+    resultData = zapi.exec_zapiCall('/zapi/watch', params)
+    url = ""
+    if resultData is not None:
+        if addon.getSetting('hack') == 'true':
+            url = resultData['stream']['watch_urls'][0]['url']
+            matching = "zattoo-hls-live.akamaized.net"
+            new_str = "zba1-0-hls-live.zahs.tv"
+            url = url.replace(matching, new_str)
+        else:
+            url = resultData['stream']['watch_urls'][0]['url']
+    return url
 
 class AsyncMethod(object):
     def __init__(self, fnc, callback=None):
@@ -184,23 +201,11 @@ class MyHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
         if 'live.m3u' in self.path:
             args = parse_qs(urlparse(self.path).query);
-            cmd = args['channel'][0];
-            #numportal = args['portal'][0];
-            #portal = portals[numportal];
-            #url = load_channels.retriveUrl( portal['url'], cmd);
-            zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
-            zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
-            params = {'cid': cmd, 'stream_type': 'hls'}
-            resultData = zapi.exec_zapiCall('/zapi/watch', params)
-            url = ""
-            if resultData is not None:
-                url = resultData['stream']['watch_urls'][0]['url']
-                matching = "zattoo-hls-live.akamaized.net"
-                new_str = "zba1-0-hls-live.zahs.tv"
-                url = url.replace(matching, new_str)
-                self.send_response(301)
-                self.send_header('Location', url)
-                self.end_headers()
+            cmd = args['channel'][0];   
+            url = watchURL(cmd)
+            self.send_response(301)
+            self.send_header('Location', url)
+            self.end_headers()
     
     
     def do_GET(self):
@@ -213,10 +218,15 @@ class MyHandler(BaseHTTPRequestHandler):
                 EXTM3U = "#EXTM3U\n";
                 counting = 0
                 try:
-                    
+                    if date in None: date = datetime.date.today()
+                    else: date = date.date()
+                    fromTime = int(time.mktime(date.timetuple()))
+                    toTime = fromTime + 86400
                     zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
                     zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
                     api = '/zapi/v2/cached/channels/%s?details=False' % (zapi.AccountData['account']['power_guide_hash'])
+                    guide = '/zapi/v2/cached/program/power_guide' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
+                    xbmc.log(str(guide))
                     channels = zapi.exec_zapiCall(api, None)
                     
                     for group in channels['channel_groups']:
@@ -244,20 +254,11 @@ class MyHandler(BaseHTTPRequestHandler):
                 
                 args = parse_qs(urlparse(self.path).query);
                 cmd = args['channel'][0];
-                #numportal = args['portal'][0];
-                #portal = portals[numportal];
-                #url = load_channels.retriveUrl( portal['url'], cmd);
-                zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
-                zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
-                params = {'cid': cmd, 'stream_type': 'hls'}
-                resultData = zapi.exec_zapiCall('/zapi/watch', params)
-                url = ""
-                if resultData is not None:
-                    url = resultData['stream']['watch_urls'][0]['url']
+                url = watchURL(cmd)
                 self.send_response(301)
                 self.send_header('Location', url)
                 self.end_headers()
-                self.finish()
+
                 
             elif 'epg.xml' in self.path:
 				
