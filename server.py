@@ -24,7 +24,7 @@ addon       = xbmcaddon.Addon()
 addonname   = addon.getAddonInfo('name')
 addondir    = xbmc.translatePath( addon.getAddonInfo('profile') ) 
 
-portals = None;
+#portals = None;
 server = None;
 
 
@@ -182,38 +182,40 @@ class ZapiSession:
 
 class MyHandler(BaseHTTPRequestHandler):
     def do_HEAD(self):
-        self.send_response(200)
-        self.send_header("Content-type", "application/x-mpegURL")
-        self.end_headers()
+        if 'live.m3u' in self.path:
+            args = parse_qs(urlparse(self.path).query);
+            cmd = args['channel'][0];
+            #numportal = args['portal'][0];
+            #portal = portals[numportal];
+            #url = load_channels.retriveUrl( portal['url'], cmd);
+            zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+            zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
+            params = {'cid': cmd, 'stream_type': 'hls'}
+            resultData = zapi.exec_zapiCall('/zapi/watch', params)
+            url = ""
+            if resultData is not None:
+                url = resultData['stream']['watch_urls'][0]['url']
+                matching = "zattoo-hls-live.akamaized.net"
+                new_str = "zba1-0-hls-live.zahs.tv"
+                url = url.replace(matching, new_str)
+                self.send_response(301)
+                self.send_header('Location', url)
+                self.end_headers()
     
     
     def do_GET(self):
-        global portals, server;
-
+        global server;
+        #global portals
         try:
-            if re.match('.*channels-([0-9])\..*|.*channels\..*\?portal=([0-9])', self.path):
+            if re.match('.*channels-([0-9])\..*|.*channels\..*', self.path):
                 host = self.headers.get('Host');
-                searchObj = re.search('.*channels-([0-9])\..*|.*channels\..*\?portal=([0-9])', self.path);
-                if searchObj.group(1) != None:
-                    numportal = searchObj.group(1);
-                elif searchObj.group(2) != None:
-                    numportal = searchObj.group(2);
-                else:
-                    
-                    self.send_error(400,'Bad Request');
-                    return;
-                
-                portal = portals[numportal];
-                
                 
                 EXTM3U = "#EXTM3U\n";
-                # f = open("/Users/paulhopgood/Documents/log.txt", "a");
-                countering = 0
+                counting = 0
                 try:
-                    #data = load_channels.getAllChannels(portal['mac'], portal['url'], portal['serial'], addondir);
                     
-                    zapi = ZapiSession('/Users/paulhopgood/Documents/')
-                    zapi.init_session('paulhopgood@gmail.com', 'v1p3rdns')
+                    zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+                    zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
                     api = '/zapi/v2/cached/channels/%s?details=False' % (zapi.AccountData['account']['power_guide_hash'])
                     channels = zapi.exec_zapiCall(api, None)
                     
@@ -221,25 +223,17 @@ class MyHandler(BaseHTTPRequestHandler):
                         for channeling in group['channels']:
                             title = channeling['title']
                             cid = channeling['cid']
-                            parameters = urllib.urlencode( { 'channel' : cid, 'portal': numportal });
-                            
-                            params = {'cid': cid, 'stream_type': 'hls'}
-                            resultData = zapi.exec_zapiCall('/zapi/watch', params)
-                            EXTM3U += '#EXTINF:-1, tvg-id="' + str(countering) + '" tvg-name="' + title + '", '+ title +' \n';
-                            EXTM3U += resultData['stream']['watch_urls'][0]['url']
-                            #EXTM3U += 'http://' + host +'/live.m3u?' + parameters + '\n\n';
-                            countering += 1
+                            parameters = urllib.urlencode( { 'channel' : cid });
+                            EXTM3U += '#EXTINF:-1, tvg-id="' + str(counting) + '" tvg-name="' + title + '", '+ title +' \n';
+                            EXTM3U += 'http://' + host +'/live.m3u?' + parameters + '\n\n';
+                            counting += 1
                         
                 except Exception as e:
                         EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" tvg-logo="" group-title="Error", ' + str(e) + '\n';
                         EXTM3U += 'http://\n\n';
-                #         for tb in traceback.format_tb(sys.exc_info()[2]):
-                #             f.write(str(tb));
-                #
-                # f.close();
+
                 self.send_response(200)
                 self.send_header('Content-type',	'application/x-mpegURL')
-                #self.send_header('Content-type',	'text/html')
                 self.send_header('Connection',	'close')
                 self.send_header('Content-Length', len(EXTM3U))
                 self.end_headers()
@@ -250,11 +244,11 @@ class MyHandler(BaseHTTPRequestHandler):
                 
                 args = parse_qs(urlparse(self.path).query);
                 cmd = args['channel'][0];
-                numportal = args['portal'][0];
-                portal = portals[numportal];
+                #numportal = args['portal'][0];
+                #portal = portals[numportal];
                 #url = load_channels.retriveUrl( portal['url'], cmd);
-                zapi = ZapiSession('/Users/paulhopgood/Documents/')
-                zapi.init_session('paulhopgood@gmail.com', 'v1p3rdns')
+                zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+                zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
                 params = {'cid': cmd, 'stream_type': 'hls'}
                 resultData = zapi.exec_zapiCall('/zapi/watch', params)
                 url = ""
@@ -322,18 +316,13 @@ class MyHandler(BaseHTTPRequestHandler):
 
 @Async
 def startServer():
-    global portals, server;
+    global server;
     server_enable = addon.getSetting('server_enable');
     port = int(addon.getSetting('server_port'));
     
     if server_enable != 'true':
         return;
-    
-    portals = { 
-        '1' : config.portalConfig('1'), 
-        '2' : config.portalConfig('2'), 
-        '3' : config.portalConfig('3') };
-    
+        
     try:
         server = SocketServer.TCPServer(('', port), MyHandler);
         server.serve_forever();
