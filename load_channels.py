@@ -393,15 +393,12 @@ def getAllChannels(portal_mac, url, serial, path):
 	
 	return json.loads(data.encode('utf-8'));
 
-def getEPG(portal_mac, url, serial, path):	
-	global key, cache_version;
+def getEPG(path, guide, channels):	
+	global cache_version;
 	
 	now = time();
-	portalurl = "_".join(re.findall("[a-zA-Z0-9]+", url));
-	portalurl = path + '/' + portalurl + '-epg';
+	portalurl = path + '/zattoo-epg';
 	
-	setMac(portal_mac);
-	setSerialNumber(serial);
 	
 	if not os.path.exists(path): 
 		os.makedirs(path);
@@ -415,28 +412,13 @@ def getEPG(portal_mac, url, serial, path):
 		version = itemlist[0].attributes['cache-version'].value;
 		
 		if version != cache_version:
-			clearCache(url, path);
+			clearCache('zattoo-epg', path);
 			
 		else:
 			time_init = float(itemlist[0].attributes['cache-time'].value);
 			# update 2h
 			if ((now - time_init) / 3600) < 2:
 				return xmldoc.toxml(encoding='utf-8');
-	
-
-	channels = getAllChannels(portal_mac, url, serial, path);
-	channels = channels['channels'];
-	
-	handshake(url);
-	
-	info = retrieveData(url, values = {
-		'type' : 'itv', 
-		'action' : 'get_epg_info',
-		'period' : '6',
-		'JsHttpRequest' : '1-xml'})
-
-
-	results = info['js']['data'];
 	
 	doc = minidom.Document();
 	base = doc.createElement('tv');
@@ -447,77 +429,65 @@ def getEPG(portal_mac, url, serial, path):
 	doc.appendChild(base)
 
 
-	for c in results:
-		
-		if not str(c) in channels:
-			continue;
-	
-		channel = channels[str(c)];
-		name = channel['name'];
-		
-		c_entry = doc.createElement('channel');
-		c_entry.setAttribute("id", str(c));
-		base.appendChild(c_entry)
-		
-		
-		dn_entry = doc.createElement('display-name');
-		dn_entry_content = doc.createTextNode(name);
-		dn_entry.appendChild(dn_entry_content);
-		c_entry.appendChild(dn_entry);
-	
+	for c in guide['channels']:
+        channelID = c['cid']
+        
+        c_entry = doc.createElement('channel');
+        c_entry.setAttribute("id", str(channelID));
+        base.appendChild(c_entry)
+        
+        for group in channels['channel_groups']:
+            for channelInfo in group['channels']:
+                title = channelInfo['title']
+                dn_entry = doc.createElement('display-name');
+                dn_entry_content = doc.createTextNode(title);
+                dn_entry.appendChild(dn_entry_content);
+                c_entry.appendChild(dn_entry);
+        
+        for program in c['programs']:
+        
+            start_time 	= datetime.fromtimestamp(int(program['s']));
+            stop_time	= datetime.fromtimestamp(int(program['e']));
+            
+            pg_entry = doc.createElement('programme');
+            pg_entry.setAttribute("start", start_time.strftime('%Y%m%d%H%M%S -0000'));
+            pg_entry.setAttribute("stop", stop_time.strftime('%Y%m%d%H%M%S -0000'));
+            pg_entry.setAttribute("channel", str(channelID));
+            base.appendChild(pg_entry);
+            
+            t_entry = doc.createElement('title');
+            #t_entry.setAttribute("lang", "en");
+            t_entry_content = doc.createTextNode(program['t']);
+            t_entry.appendChild(t_entry_content);
+            pg_entry.appendChild(t_entry);
+            
+            d_entry = doc.createElement('desc');
+            #d_entry.setAttribute("lang", "en");
+            d_entry_content = doc.createTextNode(program['et']);
+            d_entry.appendChild(d_entry_content);
+            pg_entry.appendChild(d_entry);
+            
+            #dt_entry = doc.createElement('date');
+            #dt_entry_content = doc.createTextNode(epg['on_date']);
+            #dt_entry.appendChild(dt_entry_content);
+            #pg_entry.appendChild(dt_entry);
+            
+            #c_entry = doc.createElement('category');
+            #c_entry_content = doc.createTextNode(epg['category']);
+            #c_entry.appendChild(c_entry_content);
+            #pg_entry.appendChild(c_entry);
+            
+            
+            i_entry = doc.createElement('icon');
+            i_entry.setAttribute("src", program['i_url']);
+            i_entry.appendChild(i_entry_content);
+            pg_entry.appendChild(i_entry);
 
-	for k,v in results.iteritems():
-	
-		channel = None;
-		
-		if str(k) in channels:
-			channel = channels[str(k)];
-		
-		for epg in v:
-		
-			start_time 	= datetime.fromtimestamp(float(epg['start_timestamp']));
-			stop_time	= datetime.fromtimestamp(float(epg['stop_timestamp']));
-			
-			pg_entry = doc.createElement('programme');
-			pg_entry.setAttribute("start", start_time.strftime('%Y%m%d%H%M%S -0000'));
-			pg_entry.setAttribute("stop", stop_time.strftime('%Y%m%d%H%M%S -0000'));
-			pg_entry.setAttribute("channel", str(k));
-			base.appendChild(pg_entry);
-			
-			t_entry = doc.createElement('title');
-			t_entry.setAttribute("lang", "en");
-			t_entry_content = doc.createTextNode(epg['name']);
-			t_entry.appendChild(t_entry_content);
-			pg_entry.appendChild(t_entry);
-			
-			d_entry = doc.createElement('desc');
-			d_entry.setAttribute("lang", "en");
-			d_entry_content = doc.createTextNode(epg['descr']);
-			d_entry.appendChild(d_entry_content);
-			pg_entry.appendChild(d_entry);
-			
-			dt_entry = doc.createElement('date');
-			dt_entry_content = doc.createTextNode(epg['on_date']);
-			dt_entry.appendChild(dt_entry_content);
-			pg_entry.appendChild(dt_entry);
-			
-			c_entry = doc.createElement('category');
-			c_entry_content = doc.createTextNode(epg['category']);
-			c_entry.appendChild(c_entry_content);
-			pg_entry.appendChild(c_entry);
-			
-		
-			if channel != None and channel['logo'] != '':
-				i_entry = doc.createElement('icon');
-				i_entry.setAttribute("src", url + '/stalker_portal/misc/logos/320/' + channel['logo']);
-				i_entry.appendChild(i_entry_content);
-				pg_entry.appendChild(i_entry);
-
-	
-	with open(portalurl, 'w') as f: f.write(doc.toxml(encoding='utf-8'));
-	
-	return doc.toxml(encoding='utf-8');
-	
+    
+    with open(portalurl, 'w') as f: f.write(doc.toxml(encoding='utf-8'));
+    
+    return doc.toxml(encoding='utf-8');
+    
 
 
 
