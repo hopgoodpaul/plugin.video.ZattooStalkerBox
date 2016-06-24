@@ -230,13 +230,10 @@ class MyHandler(BaseHTTPRequestHandler):
                     guide = '/zapi/v2/cached/program/power_guide/' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
                     xbmc.log(str(guide))
                     channels = zapi.exec_zapiCall(api, None)
-<<<<<<< HEAD
                     guided = zapi.exec_zapiCall(guide, None)
                     xbmc.log(str(guided))
                     
-=======
                     tvGuide = zapi.exec_zapiCall(guide, None)
->>>>>>> 9673c66c1ea556f03733b3270c495ce81fe033f6
                     for group in channels['channel_groups']:
                         for channeling in group['channels']:
                             title = channeling['title']
