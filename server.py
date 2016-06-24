@@ -223,13 +223,15 @@ class MyHandler(BaseHTTPRequestHandler):
                     else: date = date.date()
                     
                     fromTime = int(time.mktime(date.timetuple()))
-                    toTime = fromTime + 86400
+                    toTime = fromTime + 3600
                     zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
                     zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
                     api = '/zapi/v2/cached/channels/%s?details=False' % (zapi.AccountData['account']['power_guide_hash'])
-                    guide = '/zapi/v2/cached/program/power_guide' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
+                    guide = '/zapi/v2/cached/program/power_guide/' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
                     xbmc.log(str(guide))
                     channels = zapi.exec_zapiCall(api, None)
+                    guided = zapi.exec_zapiCall(guide, None)
+                    xbmc.log(str(guided))
                     
                     for group in channels['channel_groups']:
                         for channeling in group['channels']:
