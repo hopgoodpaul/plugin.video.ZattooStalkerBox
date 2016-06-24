@@ -229,7 +229,7 @@ class MyHandler(BaseHTTPRequestHandler):
                     guide = '/zapi/v2/cached/program/power_guide' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
                     xbmc.log(str(guide))
                     channels = zapi.exec_zapiCall(api, None)
-                    
+                    tvGuide = zapi.exec_zapiCall(guide, None)
                     for group in channels['channel_groups']:
                         for channeling in group['channels']:
                             title = channeling['title']
@@ -269,7 +269,7 @@ class MyHandler(BaseHTTPRequestHandler):
 				portal = portals[numportal];
 				
 				try:
-					xml = load_channels.getEPG(portal['mac'], portal['url'], portal['serial'], addondir);
+					xml = load_channels.getEPG(portal['mac'], portal['url'], portal['serial'], addondir, tvGuide, channels);
 				except Exception as e:
 					xml  = '<?xml version="1.0" encoding="ISO-8859-1"?>'
 					xml += '<error>' + str(e) + '</error>';
