@@ -218,22 +218,16 @@ class MyHandler(BaseHTTPRequestHandler):
                 EXTM3U = "#EXTM3U\n";
                 counting = 0
                 try:
-                    date = datetime.datetime.now()
-                    if date is None: date = datetime.date.today()
-                    else: date = date.date()
                     
-                    fromTime = int(time.mktime(date.timetuple()))
-                    toTime = fromTime + 3600
                     zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
                     zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
                     api = '/zapi/v2/cached/channels/%s?details=False' % (zapi.AccountData['account']['power_guide_hash'])
-                    guide = '/zapi/v2/cached/program/power_guide/' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
-                    xbmc.log(str(guide))
                     channels = zapi.exec_zapiCall(api, None)
-                    guided = zapi.exec_zapiCall(guide, None)
-                    xbmc.log(str(guided))
+                    #guided = zapi.exec_zapiCall(guide, None)
+                    #xbmc.log(str(guided))
                     
-                    tvGuide = zapi.exec_zapiCall(guide, None)
+                    #tvGuide = zapi.exec_zapiCall(guide, None)
+                    #xml = load_channels.getEPG(addondir, tvGuide, channels);
                     for group in channels['channel_groups']:
                         for channeling in group['channels']:
                             title = channeling['title']
@@ -266,26 +260,37 @@ class MyHandler(BaseHTTPRequestHandler):
 
                 
             elif 'epg.xml' in self.path:
-				
-				args = parse_qs(urlparse(self.path).query);
-				numportal = args['portal'][0];
-				
-				portal = portals[numportal];
-				
-				try:
-					xml = load_channels.getEPG(portal['mac'], portal['url'], portal['serial'], addondir, tvGuide, channels);
-				except Exception as e:
-					xml  = '<?xml version="1.0" encoding="ISO-8859-1"?>'
-					xml += '<error>' + str(e) + '</error>';
-					
-				
-				self.send_response(200)
-				self.send_header('Content-type',	'txt/xml')
-				self.send_header('Connection',	'close')
-				self.send_header('Content-Length', len(xml))
-				self.end_headers()
-				self.wfile.write(xml)
-				self.finish()
+                date = datetime.datetime.now()
+                if date is None: date = datetime.date.today()
+                else: date = date.date()
+                #args = parse_qs(urlparse(self.path).query);
+                #numportal = args['portal'][0];
+                fromTime = int(time.mktime(date.timetuple()))
+                toTime = fromTime + 86400
+                zapi = ZapiSession(xbmc.translatePath(addon.getAddonInfo('profile')).decode('utf-8'))
+                zapi.init_session(addon.getSetting('username'), addon.getSetting('password'))
+                api = '/zapi/v2/cached/channels/%s?details=False' % (zapi.AccountData['account']['power_guide_hash'])
+                guide = '/zapi/v2/cached/program/power_guide/' + zapi.AccountData['account']['power_guide_hash'] + '?end=' + str(toTime) + '&start=' + str(fromTime)
+                channels = zapi.exec_zapiCall(api, None)
+                #guided = zapi.exec_zapiCall(guide, None)
+                #xbmc.log(str(guided))
+                
+                tvGuide = zapi.exec_zapiCall(guide, None)
+                try:
+                    xml = load_channels.getEPG(addondir, tvGuide, channels);
+                    #xbmc.log(str(xml) + "this is the xml")
+                except Exception as e:
+                    xml  = '<?xml version="1.0" encoding="ISO-8859-1"?>'
+                    xml += '<error>' + str(e) + '</error>';
+                
+                
+                self.send_response(200)
+                self.send_header('Content-type',	'txt/xml')
+                self.send_header('Connection',	'close')
+                self.send_header('Content-Length', len(xml))
+                self.end_headers()
+                self.wfile.write(xml)
+                self.finish()
                  
             elif 'stop' in self.path:
 				msg = 'Stopping ...';

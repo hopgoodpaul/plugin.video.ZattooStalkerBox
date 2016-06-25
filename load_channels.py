@@ -394,55 +394,57 @@ def getAllChannels(portal_mac, url, serial, path):
 	return json.loads(data.encode('utf-8'));
 
 def getEPG(path, guide, channels):	
-	global cache_version;
-	
-	now = time();
-	portalurl = path + '/zattoo-epg';
-	
-	
-	if not os.path.exists(path): 
-		os.makedirs(path);
-	
-	if os.path.exists(portalurl):
-		#check last time
-		xmldoc = minidom.parse(portalurl);
-		
-		itemlist = xmldoc.getElementsByTagName('tv');
-		
-		version = itemlist[0].attributes['cache-version'].value;
-		
-		if version != cache_version:
-			clearCache('zattoo-epg', path);
-			
-		else:
-			time_init = float(itemlist[0].attributes['cache-time'].value);
-			# update 2h
-			if ((now - time_init) / 3600) < 2:
-				return xmldoc.toxml(encoding='utf-8');
-	
-	doc = minidom.Document();
-	base = doc.createElement('tv');
-	base.setAttribute("cache-version", cache_version);
-	base.setAttribute("cache-time", str(now));
-	base.setAttribute("generator-info-name", "IPTV Plugin");
-	base.setAttribute("generator-info-url", "http://www.xmltv.org/");
-	doc.appendChild(base)
+    global cache_version;
+    
+    now = time();
+    portalurl = path + '/zattoo-epg';
+    
+    if not os.path.exists(path):
+        os.makedirs(path);
 
+    if os.path.exists(portalurl):
+        #check last time
+        xmldoc = minidom.parse(portalurl);
 
-	for c in guide['channels']:
+        itemlist = xmldoc.getElementsByTagName('tv');
+
+        version = itemlist[0].attributes['cache-version'].value;
+
+        if version != cache_version:
+            clearCache('zattoo-epg', path);
+
+        else:
+            time_init = float(itemlist[0].attributes['cache-time'].value);
+            # update 2h
+            if ((now - time_init) / 3600) < 2:
+                return xmldoc.toxml(encoding='utf-8');
+        
+    doc = minidom.Document();
+    base = doc.createElement('tv');
+    base.setAttribute("cache-version", cache_version);
+    base.setAttribute("cache-time", str(now));
+    base.setAttribute("generator-info-name", "ZattooStalkerBox Plugin");
+    base.setAttribute("generator-info-url", "http://www.xmltv.org/");
+    doc.appendChild(base)
+    
+    title = None
+    
+    for c in guide['channels']:
         channelID = c['cid']
         
         c_entry = doc.createElement('channel');
         c_entry.setAttribute("id", str(channelID));
         base.appendChild(c_entry)
         
+        
         for group in channels['channel_groups']:
             for channelInfo in group['channels']:
-                title = channelInfo['title']
-                dn_entry = doc.createElement('display-name');
-                dn_entry_content = doc.createTextNode(title);
-                dn_entry.appendChild(dn_entry_content);
-                c_entry.appendChild(dn_entry);
+                if channelID == channelInfo['cid']:
+                    title = channelInfo['title']
+                    dn_entry = doc.createElement('display-name');
+                    dn_entry_content = doc.createTextNode(title);
+                    dn_entry.appendChild(dn_entry_content);
+                    c_entry.appendChild(dn_entry);
         
         for program in c['programs']:
         
@@ -457,15 +459,26 @@ def getEPG(path, guide, channels):
             
             t_entry = doc.createElement('title');
             #t_entry.setAttribute("lang", "en");
-            t_entry_content = doc.createTextNode(program['t']);
+            t = program['t']
+            if t is not None:
+                t.encode('ascii', 'ignore')
+            else:
+                t = ""
+            t_entry_content = doc.createTextNode(t);
             t_entry.appendChild(t_entry_content);
             pg_entry.appendChild(t_entry);
             
             d_entry = doc.createElement('desc');
             #d_entry.setAttribute("lang", "en");
-            d_entry_content = doc.createTextNode(program['et']);
+            et = program['et']
+            if et is not None:
+                et.encode('ascii', 'ignore')
+            else:
+                et = ""
+            d_entry_content = doc.createTextNode(et);
             d_entry.appendChild(d_entry_content);
             pg_entry.appendChild(d_entry);
+            
             
             #dt_entry = doc.createElement('date');
             #dt_entry_content = doc.createTextNode(epg['on_date']);
@@ -478,12 +491,12 @@ def getEPG(path, guide, channels):
             #pg_entry.appendChild(c_entry);
             
             
-            i_entry = doc.createElement('icon');
-            i_entry.setAttribute("src", program['i_url']);
-            i_entry.appendChild(i_entry_content);
-            pg_entry.appendChild(i_entry);
+            #i_entry = doc.createElement('icon');
+            #i_entry.setAttribute("src", program['i_url']);
+            #i_entry.appendChild(i_entry_content);
+            #pg_entry.appendChild(i_entry);
 
-    
+    #xbmc.log(doc.toxml(encoding='utf-8'))
     with open(portalurl, 'w') as f: f.write(doc.toxml(encoding='utf-8'));
     
     return doc.toxml(encoding='utf-8');
