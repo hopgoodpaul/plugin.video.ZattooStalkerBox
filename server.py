@@ -232,13 +232,15 @@ class MyHandler(BaseHTTPRequestHandler):
                         for channeling in group['channels']:
                             title = channeling['title']
                             cid = channeling['cid']
+                            logo = channeling['qualities'][0]['logo_white_84']
+                            xbmc.log(logo)
                             parameters = urllib.urlencode( { 'channel' : cid });
-                            EXTM3U += '#EXTINF:-1, tvg-id="' + str(counting) + '" tvg-name="' + title + '", '+ title +' \n';
+                            EXTM3U += '#EXTINF:-1, tvg-id="' + str(counting) + '" tvg-logo="http://logos.zattic.com' + logo + '" tvg-name="' + title + '", '+ title +' \n';
                             EXTM3U += 'http://' + host +'/live.m3u?' + parameters + '\n\n';
                             counting += 1
                         
                 except Exception as e:
-                        EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" tvg-logo="" group-title="Error", ' + str(e) + '\n';
+                        EXTM3U += '#EXTINF:-1, tvg-id="Error" tvg-name="Error" group-title="Error", ' + str(e) + '\n';
                         EXTM3U += 'http://\n\n';
 
                 self.send_response(200)

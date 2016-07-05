@@ -397,7 +397,9 @@ def getEPG(path, guide, channels):
     global cache_version;
     
     now = time();
-    portalurl = path + '/zattoo-epg';
+    portalurl = path + '/zattoo-epg.xml';
+    
+    clearCache('zattoo-epg.xml', path);
     
     if not os.path.exists(path):
         os.makedirs(path);
@@ -411,7 +413,7 @@ def getEPG(path, guide, channels):
         version = itemlist[0].attributes['cache-version'].value;
 
         if version != cache_version:
-            clearCache('zattoo-epg', path);
+            clearCache('zattoo-epg.xml', path);
 
         else:
             time_init = float(itemlist[0].attributes['cache-time'].value);
@@ -480,22 +482,6 @@ def getEPG(path, guide, channels):
             pg_entry.appendChild(d_entry);
             
             
-            #dt_entry = doc.createElement('date');
-            #dt_entry_content = doc.createTextNode(epg['on_date']);
-            #dt_entry.appendChild(dt_entry_content);
-            #pg_entry.appendChild(dt_entry);
-            
-            #c_entry = doc.createElement('category');
-            #c_entry_content = doc.createTextNode(epg['category']);
-            #c_entry.appendChild(c_entry_content);
-            #pg_entry.appendChild(c_entry);
-            
-            
-            #i_entry = doc.createElement('icon');
-            #i_entry.setAttribute("src", program['i_url']);
-            #i_entry.appendChild(i_entry_content);
-            #pg_entry.appendChild(i_entry);
-
     #xbmc.log(doc.toxml(encoding='utf-8'))
     with open(portalurl, 'w') as f: f.write(doc.toxml(encoding='utf-8'));
     
